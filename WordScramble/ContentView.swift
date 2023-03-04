@@ -12,6 +12,9 @@ struct ContentView: View {
     @State private var rootWord = ""
     @State private var newWord = ""
     
+    @State private var errorTitle = ""
+    @State private var errorMessage = ""
+    @State private var showingError = false
     
     var body: some View {
         NavigationStack{
@@ -32,8 +35,39 @@ struct ContentView: View {
             .navigationTitle(rootWord)
             .onSubmit(addNewWord)
             .onAppear(perform: startGame)
+            .alert(errorTitle, isPresented: $showingError){
+                Button("OK",role: .cancel){}
+            }message: {
+                Text(errorMessage)
+            }
         }
         
+    }
+    func wordError(title: String, message: String) {
+        errorTitle = title
+        errorMessage = message
+        showingError = true
+    }
+    func isReal(word: String) -> Bool{
+        let checker = UITextChecker()
+        let range = NSRange(location: 0, length: word.utf16.count)
+        let misspelledRange = checker.rangeOfMisspelledWord(in: word, range: range, startingAt: 0, wrap: false, language: "en")
+        return misspelledRange.location == NSNotFound
+    }
+    func isPossible(word: String) -> Bool{
+        var rootCopy = rootWord
+        
+        for letter in word{
+            if let position = rootCopy.firstIndex(of: letter){
+                rootCopy.remove(at: position)
+            }else{
+                return false
+            }
+        }
+        return true
+    }
+    func isOriginal(word: String) -> Bool{
+        return !usedWords.contains(word)
     }
     func startGame(){
         // 1. Find the URL for start.txt in our app bundle
@@ -55,16 +89,33 @@ struct ContentView: View {
             }
         }
     }
-    func addNewWord(){
-        let trimmedWord = newWord.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
-        if trimmedWord.count <= 1{
+    func addNewWord() {
+        // lowercase and trim the word, to make sure we don't add duplicate words with case differences
+        let answer = newWord.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+
+        // exit if the remaining string is empty
+        guard answer.count > 0 else { return }
+
+        // extra validation to come
+        guard isOriginal(word: answer) else {
+            wordError(title: "Word used already", message: "Be more original")
             return
-        }else{
-            withAnimation{
-                usedWords.insert(trimmedWord, at: 0)
-            }
-            newWord = ""
         }
+
+        guard isPossible(word: answer) else {
+            wordError(title: "Word not possible", message: "You can't spell that word from '\(rootWord)'!")
+            return
+        }
+
+        guard isReal(word: answer) else {
+            wordError(title: "Word not recognized", message: "You can't just make them up, you know!")
+            return
+        }
+        withAnimation{
+            usedWords.insert(answer, at: 0)
+        }
+
+        newWord = ""
     }
 }
 
