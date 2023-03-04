@@ -40,8 +40,26 @@ struct ContentView: View {
             }message: {
                 Text(errorMessage)
             }
+            .toolbar{
+                HStack{
+                    Button{
+                        restartGame()
+                    }label: {
+                        withAnimation{
+                            Image(systemName: "repeat.circle.fill")
+                                .font(.title2)
+                        }
+    
+                    }
+                }
+            }
         }
         
+    }
+    func restartGame(){
+        usedWords = [String]()
+        rootWord = ""
+        startGame()
     }
     func wordError(title: String, message: String) {
         errorTitle = title
@@ -95,6 +113,11 @@ struct ContentView: View {
 
         // exit if the remaining string is empty
         guard answer.count > 0 else { return }
+        
+        if answer==rootWord{
+            wordError(title: "it's a question word", message: "can't use question word")
+            return
+        }
 
         // extra validation to come
         guard isOriginal(word: answer) else {
